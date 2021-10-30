@@ -124,3 +124,7 @@ def webhook():
     GLOBAL_RULES.run(data, BOT_INFO[data['group_id']], send_message)
 
     return "ok", 200
+
+@app.route('/', methods=['GET'])
+def hello():
+    return "Hello! This app is empty and has no UI", 200
