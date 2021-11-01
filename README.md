@@ -1,5 +1,4 @@
-# GroupMe Bot Driver
-[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://github.com/paulpfeister/GroupMe-BotDriver/issues) ![GitHub last commit](https://img.shields.io/github/last-commit/paulpfeister/groupme-botdriver.svg)
+# GroupMe Bot
 
 This driver is written entirely in Python, and with easy configuration in mind.
 
