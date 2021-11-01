@@ -6,21 +6,25 @@ import pytz
 def run(data, bot_info, send):
     message = data['text']
 
-    if message == '!price':
-        productId = 'SHIB-USD'
+    cmd, *args = message.split(' ')
+
+    if cmd == '!price':
+        if len(args) == 0:
+            ticker = 'SHIB'
+        else:
+            ticker = args[0].upper()
+        productId = f'{ticker}-USD'
         client = cbpro.PublicClient()
-        shib = client.get_product_ticker(productId)
-        dateString = datetime.strptime(shib['time'], '%Y-%m-%dT%H:%M:%S.%fZ') \
+        product = client.get_product_ticker(productId)
+        if 'message' in product:
+            send("Requested price was not found.", bot_info[0])
+            return True
+        dateString = datetime.strptime(product['time'], '%Y-%m-%dT%H:%M:%S.%fZ') \
             .replace(tzinfo=pytz.utc) \
             .astimezone(pytz.timezone('US/Central')) \
             .strftime("%I:%M:%S %p")
-        priceString = f"Current price of {productId} at {dateString} is ${shib['price']}. {data}"
+        priceString = f"Current price of {productId} at {dateString} is ${product['price']}."
         send(priceString, bot_info[0])
-        return True
-
-    if message == '!test':
-        send(
-            "Hi there! Your bot is working, you should start customizing it now.", bot_info[0])
         return True
 
     return True
