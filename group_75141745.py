@@ -14,9 +14,8 @@ def run(data, bot_info, send):
             .replace(tzinfo=pytz.utc) \
             .astimezone(pytz.timezone('US/Central')) \
             .strftime("%I:%M:%S %p")
-        priceString = f"Current price of {productId} at {dateString} is {shib['price']}."
+        priceString = f"Current price of {productId} at {dateString} is ${shib['price']}. {data}"
         send(priceString, bot_info[0])
-        send(data, bot_info[0])
         return True
 
     if message == '!test':
