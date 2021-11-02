@@ -1,12 +1,7 @@
-"""
-GroupMe Bot
-
-Developed by Paul Pfeister
-"""
 import os
 import sys
 import requests
-import importlib
+from importlib import import_module
 from flask import Flask, request
 from enum import Enum
 
@@ -87,17 +82,17 @@ if DEBUG:
         LOGGER.debug(
             "NOTE: When debugging with concurrency, you may see repetitive log entries.")
 
-# Parses bot data from the environment into the format { group_id : [bot_id, bot_name] }
+# Parses bot data from the environment into the format { group_id : [bot_id, bot_name, bot_alias] }
 for bot in (os.getenv('BOT_INFO')).split('; '):
     info = bot.split(', ')
-    BOT_INFO[info[0]] = (info[1], info[2])
+    BOT_INFO[info[0]] = (info[1], info[2], info[3])
 
 LOGGER.ok(f"FOUND BOTS: {BOT_INFO}")
 
 # When you create global rules for the bot, they will be imported here.
 try:
     # TODO Change to importlib.import_module
-    GLOBAL_RULES = __import__('global_rules')
+    GLOBAL_RULES = import_module('global_rules')
     LOGGER.ok("Global rules found and added.")
 except ImportError:
     LOGGER.warn(
@@ -106,8 +101,8 @@ except ImportError:
 # When you create custom rules for a group, they will be imported here.
 for group in BOT_INFO:
     try:
-        # TODO Change to importlib.import_module
-        GROUP_RULES[group] = __import__('group_{}'.format(group))
+        groupAlias = BOT_INFO[group][2]
+        GROUP_RULES[group] = import_module('group_{}'.format(groupAlias))
         LOGGER.ok("Group rules found and added for [G:{}]".format(group))
     except ImportError:
         if group in GROUP_RULES:
