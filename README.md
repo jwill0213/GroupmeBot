@@ -4,6 +4,8 @@ This driver is written entirely in Python, and with easy configuration in mind.
 
 Using this driver, you'll be able to monitor multiple group chats with ease and set custom rules for each one (or the same for all, if that's what you want). For easy maintenance, each group's rules will be kept in their own files. I have also taken care to make debugging simple and logs easy to read, but more on that later.
 
+[Crypto Market Cap & Pricing Data Provided By Nomics](https://nomics.com)
+
 ## Deploying the bot
 
 This driver has been built to run on Heroku. If you don't have an account, register at [signup.heroku.com](https://signup.heroku.com/).

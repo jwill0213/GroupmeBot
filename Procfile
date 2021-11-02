@@ -1,1 +1,1 @@
-web: gunicorn groupme_bot:app
+web: gunicorn bot:app
