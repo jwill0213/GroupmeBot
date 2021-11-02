@@ -1,9 +1,9 @@
 import os
-import sys
 import requests
 from importlib import import_module
 from flask import Flask, request
 from enum import Enum
+from time import sleep
 
 #######################################################################################################
 ######################## Customization ################################################################
@@ -103,12 +103,12 @@ for group in BOT_INFO:
     try:
         groupAlias = BOT_INFO[group][2]
         GROUP_RULES[group] = import_module('group_{}'.format(groupAlias))
-        LOGGER.ok("Group rules found and added for [G:{}]".format(group))
+        LOGGER.ok("Group rules found and added for [G:{}]".format(groupAlias))
     except ImportError:
         if group in GROUP_RULES:
             del GROUP_RULES[group]
         if DEBUG:
-            LOGGER.debug("Group rules not found for [G:{}]".format(group))
+            LOGGER.debug("Group rules not found for [G:{}]".format(groupAlias))
 
 #######################################################################################################
 ######################## Helper functions #############################################################
@@ -168,6 +168,9 @@ def webhook():
     data = request.get_json()
 
     logmsg(data)
+
+    # Add a sleep to make sure the bot message is after the command message
+    sleep(0.5)
 
     # Prevent the bot from acting on its own messages
     if data['name'] == BOT_INFO[data['group_id']][1]:
