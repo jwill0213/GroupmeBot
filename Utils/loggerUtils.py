@@ -1,5 +1,9 @@
 from enum import Enum
 
+from os import getenv
+
+DEBUG = (True if getenv('BOT_DEBUG') == 'True' else False)
+
 
 class logType(Enum):
     SEVERE = '\033[31m[ SEVERE ]\033[00m '  # if something critical is caught
@@ -34,7 +38,8 @@ class LOGGER:
 
     @staticmethod
     def debug(msg):
-        print(logType.DEBUG.value + str(msg) + LOGGER.logTail)
+        if DEBUG:
+            print(logType.DEBUG.value + str(msg) + LOGGER.logTail)
 
     @staticmethod
     def log(msg):
