@@ -7,6 +7,72 @@ from nomics import Nomics
 
 from Utils.loggerUtils import LOGGER
 
+from coinmarketcapapi import CoinMarketCapAPI, CoinMarketCapAPIError
+
+
+def findCryptoInfoCMC(argList):
+    if len(argList) == 0 or argList[0] == '':
+        symbol = 'SHIB'
+    else:
+        symbol = argList[0].upper()
+
+    LOGGER.debug(f"Getting info for {symbol}")
+
+    cmc = CoinMarketCapAPI(os.getenv('CMC_API_KEY'))
+
+    resp = cmc.cryptocurrency_quotes_latest(symbol=symbol)
+
+    if not resp.ok:
+        LOGGER.warn(f"Error finding info for {symbol} with CMC. {resp.status}")
+        return f'Unable to find stats for {symbol}'
+
+    cryptoData = resp.data[symbol]
+
+    LOGGER.debug("Crypto Data")
+    LOGGER.debug(cryptoData)
+
+    quote = cryptoData['quote']['USD']
+
+    LOGGER.debug("Crypto Quote")
+    LOGGER.debug(quote)
+
+    dataDate = datetime.strptime(quote['last_updated'], '%Y-%m-%dT%H:%M:%S.%fZ') \
+        .replace(tzinfo=pytz.utc) \
+        .astimezone(pytz.timezone('US/Central')) \
+        .strftime("%I:%M:%S %p")
+    currentPrice = getPrecisionString(quote['price'])
+    marketCap = getPrecisionString(quote['market_cap'], 0)
+    circulatingSupply = getPrecisionString(cryptoData['circulating_supply'], 0)
+    percent_change_1h = getPercentString(quote['percent_change_1h'])
+    percent_change_24h = getPercentString(quote['percent_change_24h'])
+    percent_change_7d = getPercentString(quote['percent_change_7d'])
+    percent_change_90d = getPercentString(quote['percent_change_90d'])
+
+    '''
+    #athDate = datetime.strptime(cryptoData['high_timestamp'], '%Y-%m-%dT%H:%M:%SZ') \
+        .replace(tzinfo=pytz.utc) \
+        .astimezone(pytz.timezone('US/Central')) \
+        .strftime("%Y-%m-%d")
+    #ath = getPrecisionString(symbolData['high'])
+    '''
+
+    returnString = (
+        f"Price Information for {symbol} as of {dataDate}\n"
+        f"Current Price: ${currentPrice}\n"
+        #f"ATH: ${ath} on {athDate}\n"
+        f"Market Cap: ${marketCap}\n"
+        f"Circulating Supply: {circulatingSupply}\n"
+        f"Last Hour: {percent_change_1h}\n"
+        f"Last Day: {percent_change_24h}\n"
+        f"Last Week: {percent_change_7d}\n"
+        f"Last 90 Days: {percent_change_90d}\n"
+    )
+
+    LOGGER.debug(f'Expected response for !info')
+    LOGGER.debug(returnString)
+
+    return returnString
+
 
 def findCryptoInfo(argList):
     if len(argList) == 0:
@@ -41,14 +107,10 @@ def findCryptoInfo(argList):
     ath = getPrecisionString(symbolData['high'])
     marketCap = getPrecisionString(symbolData['market_cap'], 0)
     circulatingSupply = getPrecisionString(symbolData['circulating_supply'], 0)
-    hourChange = getPercentString(
-        float(symbolData['1h']['price_change_pct'])*100)
-    dayChange = getPercentString(
-        float(symbolData['1d']['price_change_pct'])*100)
-    weekChange = getPercentString(
-        float(symbolData['7d']['price_change_pct'])*100)
-    yearChange = getPercentString(
-        float(symbolData['365d']['price_change_pct'])*100)
+    hourChange = getPercentString(symbolData['1h']['price_change_pct'])*100
+    dayChange = getPercentString(symbolData['1d']['price_change_pct'])*100
+    weekChange = getPercentString(symbolData['7d']['price_change_pct'])*100
+    yearChange = getPercentString(symbolData['365d']['price_change_pct'])*100
 
     returnString = (
         f"Price Information for {symbol} as of {dataDate}\n"
@@ -69,6 +131,9 @@ def findCryptoInfo(argList):
 
 
 def getPrecisionString(num, precisionOverride=-1):
+    if type(num) is not str:
+        num = str(num)
+
     pricePrecision = precisionOverride
     # Find the decimals returned
     if len(num.split('.')) > 1 and not precisionOverride > -1:
@@ -82,6 +147,9 @@ def getPrecisionString(num, precisionOverride=-1):
 
 
 def getPercentString(num):
+    if type(num) is not float:
+        num = float(num)
+
     if num >= 100:
         # Put n car emojis dending on how many 100s of percent the value has gone up
         numLambos = math.trunc(num / 100)

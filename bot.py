@@ -84,7 +84,11 @@ def webhook():
             if GROUP_RULES[data['group_id']].run(data, BOT_INFO[data['group_id']], send_message):
                 LOGGER.ok("Group rule run successfully")
         except Exception as e:
-            cmd, args = data['text'].split(' ')
+            if len(data['text'].split(' ')) > 1:
+                cmd, args = data['text'].split(' ')
+            else:
+                cmd = data['text']
+                args = []
             errorMsg = f"Tried to run {data['group_id']} rule '{cmd}' "
             if len(args) > 0:
                 errorMsg += f'with arguments {args} '
@@ -95,7 +99,11 @@ def webhook():
         if GLOBAL_RULES.run(data, BOT_INFO[data['group_id']], send_message):
             LOGGER.ok("Global rule run successfully")
     except Exception as e:
-        cmd, args = data['text'].split(' ')
+        if len(data['text'].split(' ')) > 1:
+            cmd, args = data['text'].split(' ')
+        else:
+            cmd = data['text']
+            args = []
         errorMsg = f"Tried to run global rule '{cmd}' "
         if len(args) > 0:
             errorMsg += f'with arguments {args} '
