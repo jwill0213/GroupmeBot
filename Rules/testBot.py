@@ -1,4 +1,4 @@
-from Utils.cryptoUtils import findCryptoInfo, findCryptoInfoCMC, findPrice
+from Utils.cryptoUtils import findCryptoInfoCMC, findPrice
 
 
 def run(data, bot_info, send):

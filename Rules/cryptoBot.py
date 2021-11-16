@@ -1,4 +1,4 @@
-from Utils.cryptoUtils import findPrice, findCryptoInfo
+from Utils.cryptoUtils import findCryptoInfoCMC, findPrice
 
 
 def run(data, bot_info, send):
@@ -10,7 +10,7 @@ def run(data, bot_info, send):
         send(findPrice(args), bot_info[0])
         return True
     if cmd == "!info":
-        send(findCryptoInfo(args), bot_info[0])
+        send(findCryptoInfoCMC(args), bot_info[0])
         return True
 
     return False

@@ -5,6 +5,5 @@ Flask==2.0.2
 gunicorn==20.1.0
 python-dotenv==0.19.1
 pytz==2021.3
-nomics-python==3.2.0
 python-coinmarketcap==0.3
 html5lib==1.1
