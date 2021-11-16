@@ -8,6 +8,10 @@ from nomics import Nomics
 from Utils.loggerUtils import LOGGER
 
 from coinmarketcapapi import CoinMarketCapAPI, CoinMarketCapAPIError
+from bs4 import BeautifulSoup as bs
+import requests
+
+BASE_CMC_URL = 'https://coinmarketcap.com/currencies/'
 
 
 def findCryptoInfoCMC(argList):
@@ -41,14 +45,46 @@ def findCryptoInfoCMC(argList):
         .astimezone(pytz.timezone('US/Central')) \
         .strftime("%I:%M:%S %p")
     currentPrice = getPrecisionString(quote['price'])
-    marketCap = getPrecisionString(quote['market_cap'], 0)
+    marketCap = getPrecisionString(quote['market_cap'], 2)
     circulatingSupply = getPrecisionString(cryptoData['circulating_supply'], 0)
     percent_change_1h = getPercentString(quote['percent_change_1h'])
     percent_change_24h = getPercentString(quote['percent_change_24h'])
     percent_change_7d = getPercentString(quote['percent_change_7d'])
     percent_change_90d = getPercentString(quote['percent_change_90d'])
 
+    url = BASE_CMC_URL + cryptoData['slug']
+
+    req = requests.get(url)
+
+    cryptoPage = bs(req.content, 'html5lib')
+
+    athData = cryptoPage.find(text='All Time High')
+    athDateStr = athData.parent.nextSibling.text
+
+    athTableRow = athData.parent.parent.parent
+    athValues = athTableRow.findAll('span')
+    ath = athValues[0].text
+    athPercent = athValues[1].text
+    if athTableRow.find("span", {"class": "icon-Caret-down"}):
+        athPercent = athPercent + '📉'
+    else:
+        athPercent = athPercent + '📈'
+
     '''
+    url = BASE_CMC_URL + cryptoData['slug']
+
+    req = requests.get(url)
+
+    cryptoPage = bs(req.content,'html5lib')
+
+    athData = cryptoPage.find(text='All Time High')
+    athDateStr = athData.parent.nextSibling.text
+
+    athTableRow = athData.parent.parent.parent
+    athValues = athTableRow.findAll('span')
+    ath = athValues[0]
+    athPercent = athValues[1]
+
     #athDate = datetime.strptime(cryptoData['high_timestamp'], '%Y-%m-%dT%H:%M:%SZ') \
         .replace(tzinfo=pytz.utc) \
         .astimezone(pytz.timezone('US/Central')) \
@@ -59,7 +95,7 @@ def findCryptoInfoCMC(argList):
     returnString = (
         f"Price Information for {symbol} as of {dataDate}\n"
         f"Current Price: ${currentPrice}\n"
-        #f"ATH: ${ath} on {athDate}\n"
+        f"ATH: ${ath} ({athPercent}) on {athDateStr}\n"
         f"Market Cap: ${marketCap}\n"
         f"Circulating Supply: {circulatingSupply}\n"
         f"Last Hour: {percent_change_1h}\n"
@@ -130,7 +166,7 @@ def findCryptoInfo(argList):
     return returnString
 
 
-def getPrecisionString(num, precisionOverride=-1):
+def getPrecisionString(num, precisionOverride=-1, precisionCap=10):
     if type(num) is not str:
         num = str(num)
 
@@ -141,6 +177,7 @@ def getPrecisionString(num, precisionOverride=-1):
     # Since we are doing money we want to ensure we have at least 2 decimal points of precision
     if pricePrecision < 2 and not precisionOverride > -1:
         pricePrecision = 2
+    pricePrecision = min(precisionCap, pricePrecision)
     productPrice = float(num)
     # Convert number from 1234561.11 to 1,234,561.11
     return f'{productPrice:,.{pricePrecision}f}'

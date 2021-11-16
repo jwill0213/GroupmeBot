@@ -6,5 +6,5 @@ gunicorn==20.1.0
 python-dotenv==0.19.1
 pytz==2021.3
 nomics-python==3.2.0
-# git+git://github.com/jwill0213/coinbasepro-python@update-dependencies-and-add-price-history-wrapper#egg=cbpro
 python-coinmarketcap==0.3
+html5lib==1.1
