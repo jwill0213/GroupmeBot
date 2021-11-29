@@ -54,13 +54,13 @@ def logmsg(data):
         LOGGER.warn("Message data does not contain a sender_type.")
     else:
         if sender_type == 'user':
-            LOGGER.userMsg("{}: {}{}".format(
-                data['name'], attach_type(data['attachments']), data['text']))
+            LOGGER.userMsg(
+                f"{data['name']}({data['user_id']}): {attach_type(data['attachments'])}{data['text']}")
         elif sender_type == 'system':
             LOGGER.sysmsg(data['text'])
         elif sender_type == 'bot':
-            LOGGER.botmsg("{}: {}{}".format(data['name'], attach_type(
-                data['attachments']), data['text']))
+            LOGGER.botmsg(
+                f"{data['name']}: {data['attachments']}{data['text']}")
 
 
 app = Flask(__name__)
@@ -83,6 +83,8 @@ def webhook():
         try:
             if GROUP_RULES[data['group_id']].run(data, BOT_INFO[data['group_id']], send_message):
                 LOGGER.ok("Group rule run successfully")
+            else:
+                LOGGER.debug(f"No group rule found for {data['text']}")
         except Exception as e:
             if len(data['text'].split(' ')) > 1:
                 cmd, args = data['text'].split(' ')
@@ -98,6 +100,8 @@ def webhook():
     try:
         if GLOBAL_RULES.run(data, BOT_INFO[data['group_id']], send_message):
             LOGGER.ok("Global rule run successfully")
+        else:
+            LOGGER.debug(f"No global rule found for {data['text']}")
     except Exception as e:
         if len(data['text'].split(' ')) > 1:
             cmd, args = data['text'].split(' ')

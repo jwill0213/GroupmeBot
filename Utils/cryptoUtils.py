@@ -1,6 +1,8 @@
 import os
 import pytz
 import math
+import json
+import redis
 
 from datetime import datetime
 
@@ -13,13 +15,119 @@ import requests
 BASE_CMC_URL = 'https://coinmarketcap.com/currencies/'
 
 
-def findCryptoInfoCMC(argList):
+def getRedisClient():
+    return redis.Redis.from_url(os.getenv('REDIS_URL'), decode_responses=True)
+
+
+def addToWatchlist(symbol, botID):
+    r = getRedisClient()
+    if r.exists(f'watchlist:{botID}'):
+        watchlist = json.loads(r.get(f'watchlist:{botID}'))
+        if len([w for w in watchlist if w['symbol'] == symbol]) == 0:
+            watchlist.append(getSymbolInfo(symbol))
+            newWatchlist = json.dumps(watchlist)
+            r.set(f'watchlist:{botID}', newWatchlist)
+            LOGGER.ok(f"NEW WATCHLIST: {newWatchlist}")
+            return f"Added {symbol} to the watchlist."
+        else:
+            return f"{symbol} already in the watchlist."
+    else:
+        newWatchlist = json.dumps([getSymbolInfo(symbol)])
+        r.set(f'watchlist:{botID}', newWatchlist)
+
+
+def removeFromWatchlist(symbol, botID):
+    r = getRedisClient()
+    if r.exists(f'watchlist:{botID}'):
+        watchlist = json.loads(r.get(f'watchlist:{botID}'))
+        newWatchlist = [w for w in watchlist if w['symbol'] != symbol]
+        if len(newWatchlist) < len(watchlist):
+            r.set(f'watchlist:{botID}', json.dumps(newWatchlist))
+            LOGGER.ok(f"NEW WATCHLIST: {watchlist}")
+            return f"Removed {symbol} from the watchlist."
+        elif len(newWatchlist) == len(watchlist):
+            return f"{symbol} is not on the watchlist."
+    else:
+        return f"{symbol} is not on the watchlist."
+
+
+def getPricesForWatchlist(botID):
+    r = getRedisClient()
+    if r.exists(f'watchlist:{botID}'):
+        watchList = json.loads(r.get(f'watchlist:{botID}'))
+        LOGGER.debug(watchList)
+        stringList = []
+        for w in watchList:
+            priceData = findPrice(w['symbol'])
+            if len(stringList) == 0:
+                stringList.append(
+                    f"Prices for watchlist as of {priceData['date']}")
+            stringList.append(
+                f"{w['name']} | {w['symbol']} | ${priceData['price']}")
+        return "\n".join(stringList)
+    else:
+        return "Watchlist is empty"
+
+
+class DuplicateSymbolException(Exception):
+    pass
+
+
+def getSymbolInfo(symbol):
+    cmc = CoinMarketCapAPI(os.getenv('CMC_API_KEY'))
+    try:
+        resp = cmc.cryptocurrency_map(symbol=symbol)
+    except CoinMarketCapAPIError as e:
+        LOGGER.warn(f"Error finding info for {symbol} with CMC. {e}")
+        return f'Unable to find stats for {symbol}'
+
+    cryptoMap = resp.data
+    symbolData = None
+    if len(cryptoMap) > 1:
+        # Create options, save to dict for future answer, create question to send to group
+        options = []
+        for num, c in enumerate(cryptoMap, start=1):
+            options.append(
+                {"optionNum": num, "cmcID": c['id'], "name": c['name']})
+        raise DuplicateSymbolException(options)
+    elif len(cryptoMap) == 1:
+        crypto = cryptoMap[0]
+        symbolData = {
+            'symbol': crypto['symbol'],
+            'name': crypto['name'],
+            'cmcID': crypto['id']
+        }
+        LOGGER.ok(f'Got data for {symbol}.\n {symbolData}')
+
+    return symbolData
+
+
+def addDefaultId(symbol, cmcID):
+    pass
+
+
+def getSymbol(argList):
     if len(argList) == 0 or argList[0] == '':
         symbol = 'SHIB'
     else:
         symbol = argList[0].upper()
 
+    return symbol
+
+
+def findCryptoInfoCMC(symbol):
     quote = getQuoteFromCMC(symbol)
+
+    returnString = (
+        f"Price Information for {symbol} as of {quote['dataDate']}\n"
+        f"Current Price: ${quote['currentPrice']}\n"
+        f"Market Cap: ${quote['marketCap']}\n"
+        f"Circulating Supply: {quote['circulatingSupply']}\n"
+        f"Last Hour: {quote['percent_change_1h']}\n"
+        f"Last Day: {quote['percent_change_24h']}\n"
+        f"Last Week: {quote['percent_change_7d']}\n"
+        f"Last 90 Days: {quote['percent_change_90d']}\n"
+    )
 
     try:
         # Get all time high using beautiful
@@ -35,7 +143,9 @@ def findCryptoInfoCMC(argList):
         athTableRow = athData.parent.parent.parent
         athValues = athTableRow.findAll('span')
         ath = athValues[0].text
-        # Get the percent down. Need better way to display before adding
+
+        returnString = returnString + f"ATH: {ath} on {athDateStr}\n"
+        # Get the percent down/up. Need better way to display before adding
         # athPercent = athValues[1].text
         # if athTableRow.find("span", {"class": "icon-Caret-down"}):
         #     athPercent = athPercent + '📉'
@@ -43,30 +153,24 @@ def findCryptoInfoCMC(argList):
         #     athPercent = athPercent + '📈'
     except Exception as e:
         LOGGER.warn(f"Failed to get ATH for {symbol}. {e}")
-        returnString = (
-            f"Price Information for {symbol} as of {quote['dataDate']}\n"
-            f"Current Price: ${quote['currentPrice']}\n"
-            f"Market Cap: ${quote['marketCap']}\n"
-            f"Circulating Supply: {quote['circulatingSupply']}\n"
-            f"Last Hour: {quote['percent_change_1h']}\n"
-            f"Last Day: {quote['percent_change_24h']}\n"
-            f"Last Week: {quote['percent_change_7d']}\n"
-            f"Last 90 Days: {quote['percent_change_90d']}\n"
-        )
-    else:
-        returnString = (
-            f"Price Information for {symbol} as of {quote['dataDate']}\n"
-            f"Current Price: ${quote['currentPrice']}\n"
-            f"ATH: {ath} on {athDateStr}\n"
-            f"Market Cap: ${quote['marketCap']}\n"
-            f"Circulating Supply: {quote['circulatingSupply']}\n"
-            f"Last Hour: {quote['percent_change_1h']}\n"
-            f"Last Day: {quote['percent_change_24h']}\n"
-            f"Last Week: {quote['percent_change_7d']}\n"
-            f"Last 90 Days: {quote['percent_change_90d']}\n"
-        )
 
     LOGGER.debug(f'Expected response for !info')
+    LOGGER.debug(returnString)
+
+    return returnString
+
+
+def findPrice(symbol):
+    quote = getQuoteFromCMC(symbol)
+
+    return {'date': quote['dataDate'], 'price': quote['currentPrice']}
+
+
+def findPriceString(symbol):
+    priceData = findPrice(symbol)
+    returnString = f"Current price of {symbol} at {priceData['date']} is ${priceData['price']}."
+
+    LOGGER.debug(f'Expected response for !price')
     LOGGER.debug(returnString)
 
     return returnString
@@ -109,31 +213,15 @@ def getPercentString(num):
         return getPrecisionString(str(num), 2) + '%'
 
 
-def findPrice(argList):
-    if len(argList) == 0 or argList[0] == '':
-        symbol = 'SHIB'
-    else:
-        symbol = argList[0].upper()
-
-    quote = getQuoteFromCMC(symbol)
-
-    returnString = f"Current price of {symbol} at {quote['dataDate']} is ${quote['currentPrice']}."
-
-    LOGGER.debug(f'Expected response for !price')
-    LOGGER.debug(returnString)
-
-    return returnString
-
-
 def getQuoteFromCMC(symbol):
     LOGGER.debug(f"Getting info for {symbol}")
 
     cmc = CoinMarketCapAPI(os.getenv('CMC_API_KEY'))
 
-    resp = cmc.cryptocurrency_quotes_latest(symbol=symbol)
-
-    if not resp.ok:
-        LOGGER.warn(f"Error finding info for {symbol} with CMC. {resp.status}")
+    try:
+        resp = cmc.cryptocurrency_quotes_latest(symbol=symbol)
+    except CoinMarketCapAPIError as e:
+        LOGGER.warn(f"Error finding info for {symbol} with CMC. {e}")
         return f'Unable to find stats for {symbol}'
 
     cryptoData = resp.data[symbol]
@@ -172,11 +260,3 @@ def getQuoteFromCMC(symbol):
 
     LOGGER.debug(f'Got data object {returnQuote}')
     return returnQuote
-
-
-'''
-USE BE4 test
-
-Current price: shibPage.find('div', 'priceValue').text
-
-'''
