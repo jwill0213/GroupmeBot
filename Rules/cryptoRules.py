@@ -1,4 +1,5 @@
 import logging
+
 from Utils.cryptoUtils import DuplicateSymbolException, addToWatchlist, findCryptoInfoCMC, findPriceString, getPricesForWatchlist, findCoin, removeDefault, removeFromWatchlist
 
 from Utils.questionUtils import answerQuestion, askQuestion
@@ -10,38 +11,40 @@ def run(data, botID, send):
     cmd, *args = message.split(' ')
 
     try:
-        if cmd == '!price':
-            coinData = findCoin(args, defaultSymbol='SHIB')
-            send(findPriceString(coinData), botID)
-            return True
-        if cmd == "!info":
-            coinData = findCoin(args, defaultSymbol='SHIB')
-            send(findCryptoInfoCMC(coinData), botID)
-            return True
-        if cmd == "!watch":
-            coinData = findCoin(args)
-            if coinData:
-                send(addToWatchlist(coinData, botID), botID)
+        match message.split(' '):
+            case ['!price', *args]:
+                coinData = findCoin(args, defaultSymbol='SHIB')
+                send(findPriceString(coinData), botID)
                 return True
-            else:
+            case ['!info', *args]:
+                coinData = findCoin(args, defaultSymbol='SHIB')
+                send(findCryptoInfoCMC(coinData), botID)
+                return True
+            case ['!watch', *args]:
+                coinData = findCoin(args)
+                if coinData:
+                    send(addToWatchlist(coinData, botID), botID)
+                    return True
+                else:
+                    send(getPricesForWatchlist(botID), botID)
+                    return True
+            case ['!removeWatch', *args]:
+                coinData = findCoin(args)
+                if coinData:
+                    send(removeFromWatchlist(coinData, botID), botID)
+                    return True
+            case ['!watchlist']:
                 send(getPricesForWatchlist(botID), botID)
                 return True
-        if cmd == "!removeWatch":
-            coinData = findCoin(args)
-            if coinData:
-                send(removeFromWatchlist(coinData, botID), botID)
+            case ['!removeDefault', *args]:
+                coinData = findCoin(args)
+                send(removeDefault(coinData['symbol']), botID)
                 return True
-        if cmd == "!watchlist":
-            send(getPricesForWatchlist(botID), botID)
-            return True
-        if cmd == "!pick":
-            selection = int(args[0])
-            send(answerQuestion(selection, botID), botID)
-            return True
-        if cmd == "!removeDefault":
-            coinData = findCoin(args)
-            send(removeDefault(coinData['symbol']), botID)
-            return True
+            case ['!pick', *args]:
+                selection = int(args[0])
+                send(answerQuestion(selection, botID), botID)
+                return True
+
     except DuplicateSymbolException as e:
         (questionObject,) = e.args
         logging.warning(

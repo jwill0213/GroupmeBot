@@ -40,6 +40,10 @@ def run(data, botID, send):
                 coinData = findCoin(args)
                 send(removeDefault(coinData['symbol']), botID)
                 return True
+            case ['!pick', *args]:
+                selection = int(args[0])
+                send(answerQuestion(selection, botID), botID)
+                return True
 
     except DuplicateSymbolException as e:
         (questionObject,) = e.args
