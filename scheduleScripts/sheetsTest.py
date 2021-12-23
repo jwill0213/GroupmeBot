@@ -1,5 +1,6 @@
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+import gspread
+
+from Utils.redisUtils import getRedisClient
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SERVICE_ACCOUNT_FILE = 'key.json'
@@ -9,12 +10,10 @@ SAMPLE_SPREADSHEET_ID = '***REMOVED***'
 
 
 def main():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-    service = build('sheets', 'v4', credentials=creds)
+    gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
 
     # Call the Sheets API
+    spreadsheet = gc.open_by_key(SAMPLE_SPREADSHEET_ID)
     sheetAPI = service.spreadsheets()
     result = sheetAPI.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
                                    range="TIME!A1:B30").execute()
@@ -30,28 +29,6 @@ def main():
         for row in values:
             # Print columns A and E, which correspond to indices 0 and 4.
             print('%s, %s' % (row[0], row[1]))
-
-
-def addSheet(spreadsheetAPI, sheetID, sheetName):
-    try:
-        request_body = {
-            'requests': [{
-                'addSheet': {
-                    'properties': {
-                        'title': sheetName
-                    }
-                }
-            }]
-        }
-
-        response = spreadsheetAPI.batchUpdate(
-            spreadsheetId=sheetID,
-            body=request_body
-        ).execute()
-
-        return response
-    except Exception as e:
-        print(e)
 
 
 if __name__ == '__main__':
