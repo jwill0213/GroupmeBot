@@ -1,7 +1,7 @@
-# GroupMe Bot
-
 ![GitHub Pipenv locked Python version](https://img.shields.io/github/pipenv/locked/python-version/jwill0213/GroupmeBot?style=for-the-badge)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jwill0213/GroupmeBot?style=for-the-badge)
+
+# GroupMe Bot
 
 This is a Groupme bot written entirely in Python. Based on https://github.com/paulpfeister/GroupMe-BotDriver repo as a jumping off point then updated a lot of things to make it work better for me.
 
