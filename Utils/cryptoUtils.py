@@ -17,29 +17,29 @@ BASE_CMC_URL = 'https://coinmarketcap.com/currencies/'
 
 def addToWatchlist(coinData, botID):
     r = getRedisClient()
-    if r.exists(f'watchlist:{botID}'):
-        watchlist = json.loads(r.get(f'watchlist:{botID}'))
+    if r.hexists(botID, 'watchlist'):
+        watchlist = json.loads(r.hget(botID, 'watchlist'))
         if len([w for w in watchlist if w['symbol'] == coinData['symbol']]) == 0:
             watchlist.append(coinData)
             newWatchlist = json.dumps(watchlist)
-            r.set(f'watchlist:{botID}', newWatchlist)
+            r.hset(botID, 'watchlist', newWatchlist)
             logging.debug(f"NEW WATCHLIST: {newWatchlist}")
             return f"Added {coinData['symbol']} | {coinData['name']} to the watchlist."
         else:
             return f"{coinData['symbol']} | {coinData['name']} is already on the watchlist."
     else:
         newWatchlist = json.dumps([coinData])
-        r.set(f'watchlist:{botID}', newWatchlist)
+        r.hset(botID, 'watchlist', newWatchlist)
 
 
 def removeFromWatchlist(coinData, botID):
     r = getRedisClient()
-    if r.exists(f'watchlist:{botID}'):
-        watchlist = json.loads(r.get(f'watchlist:{botID}'))
+    if r.hexists(botID, 'watchlist'):
+        watchlist = json.loads(r.hget(botID, 'watchlist'))
         newWatchlist = [w for w in watchlist if w['symbol']
                         != coinData['symbol']]
         if len(newWatchlist) < len(watchlist):
-            r.set(f'watchlist:{botID}', json.dumps(newWatchlist))
+            r.hset(botID, 'watchlist', json.dumps(newWatchlist))
             logging.debug(f"NEW WATCHLIST: {newWatchlist}")
             return f"Removed {coinData['symbol']} | {coinData['name']} from the watchlist."
         elif len(newWatchlist) == len(watchlist):
@@ -48,19 +48,27 @@ def removeFromWatchlist(coinData, botID):
         return f"{coinData['symbol']} | {coinData['name']} is not on the watchlist."
 
 
-def getPricesForWatchlist(botID):
+def getPriceDataForWatchlist(botID):
     r = getRedisClient()
-    if r.exists(f'watchlist:{botID}'):
-        watchList = json.loads(r.get(f'watchlist:{botID}'))
-        logging.debug(watchList)
-        stringList = []
-        for coin in watchList:
-            priceData = findPrice(coin)
-            if len(stringList) == 0:
-                stringList.append(
-                    f"Prices for watchlist as of {priceData['date']}")
+    if r.hexists(botID, 'watchlist'):
+        watchlist = json.loads(r.hget(botID, 'watchlist'))
+        logging.debug(watchlist)
+
+        return getQuoteFromCMC(watchlist)
+    else:
+        return None
+
+
+def getWatchlistPriceString(botID):
+    priceData = getPriceDataForWatchlist(botID)
+
+    if priceData is not None:
+        logging.debug(priceData)
+
+        stringList = [f"Prices for watchlist as of {priceData['dataDate']}"]
+        for symbol, quoteData in priceData['quotes'].items():
             coinString = "{:<5} | {:<12} | {:<15}".format(
-                coin['symbol'], "$" + priceData['quotes'][coin['symbol']]['currentPrice'], coin['name'].title())
+                symbol, "$" + quoteData['currentPrice'], quoteData['name'].title())
             stringList.append(coinString)
         return "\n".join(stringList)
     else:
@@ -71,11 +79,11 @@ class DuplicateSymbolException(Exception):
     pass
 
 
-def getCoinDataBySymbol(symbol):
+def getCoinDataBySymbol(symbol, botID):
     r = getRedisClient()
     symbolData = None
-    if r.exists(symbol):
-        symbolData = json.loads(r.get(symbol))
+    if r.hexists(botID, symbol):
+        symbolData = json.loads(r.hget(botID, symbol))
     else:
         cmc = CoinMarketCapAPI(os.getenv('CMC_API_KEY'))
         try:
@@ -92,10 +100,10 @@ def getCoinDataBySymbol(symbol):
                 coinData = {
                     "symbol": c['symbol'], "name": c['name'], "cmcID": c['id'], "slug": c['slug']}
                 options.append(
-                    {"optionNum": num, "coinData": coinData, "text": f"{num}. {c['symbol']} | {c['name']}"})
+                    {"optionNum": num, "params": (coinData, botID), "text": f"{num}. {c['symbol']} | {c['name']}"})
             questionText = "There are more than coins with that symbol. Which should be the default?"
             question = {"text": questionText, "options": options,
-                        "callback": "addDefaultToRedis", "params": "coinData"}
+                        "callback": "addDefaultToRedis"}
             raise DuplicateSymbolException(question)
         elif len(cryptoMap) == 1:
             crypto = cryptoMap[0]
@@ -108,28 +116,28 @@ def getCoinDataBySymbol(symbol):
             logging.info(f'Got data for {symbol}.\n {symbolData}')
             symbolString = json.dumps(symbolData)
             logging.info(f'Adding {symbol} to redis. {symbolString}')
-            r.set(symbol, symbolString)
+            r.hset(botID, symbol, symbolString)
 
     return symbolData
 
 
-def addDefaultToRedis(coinData):
+def addDefaultToRedis(coinData, botID):
     coinDataString = json.dumps(coinData)
     logging.info(f"Adding {coinData['symbol']} to redis. {coinDataString}")
     r = getRedisClient()
-    r.set(coinData['symbol'].upper(), coinDataString)
+    r.hset(botID, coinData['symbol'].upper(), coinDataString)
 
 
-def removeDefault(symbol):
+def removeDefault(symbol, botID):
     r = getRedisClient()
-    if r.exists(symbol):
+    if r.hexists(botID, symbol):
         logging.info(f"Removing default for {symbol}")
-        r.delete(symbol)
+        r.hdel(botID, symbol)
         return f"Removed default setting for {symbol}."
     return f"No default found for {symbol}"
 
 
-def findCoin(argList, defaultSymbol=None):
+def findCoin(argList, botID, defaultSymbol=None):
     if len(argList) == 0 or argList[0] == '':
         symbol = defaultSymbol
     else:
@@ -137,7 +145,7 @@ def findCoin(argList, defaultSymbol=None):
 
     symbolInfo = None
     if symbol:
-        symbolInfo = getCoinDataBySymbol(symbol)
+        symbolInfo = getCoinDataBySymbol(symbol, botID)
     else:
         logging.error(f"No symbol found found for {symbol}.")
 
@@ -160,9 +168,21 @@ def findCryptoInfoCMC(coinData):
         f"Last 90 Days: {quote['percent_change_90d']}\n"
     )
 
+    ath = findATH(quote['slug'])
+
+    if ath is not None:
+        returnString = returnString + f"ATH: {ath[0]} on {ath[1]}\n"
+
+    logging.debug(f'Expected response for !info')
+    logging.debug(returnString)
+
+    return returnString
+
+
+def findATH(slug):
     try:
         # Get all time high using beautiful soup
-        url = BASE_CMC_URL + quote['slug']
+        url = BASE_CMC_URL + slug
 
         req = requests.get(url)
 
@@ -175,21 +195,10 @@ def findCryptoInfoCMC(coinData):
         athValues = athTableRow.findAll('span')
         ath = athValues[0].text
 
-        returnString = returnString + f"ATH: {ath} on {athDateStr}\n"
-        # Get the percent down/up. Need better way to display before adding
-        # athPercent = athValues[1].text
-        # if athTableRow.find("span", {"class": "icon-Caret-down"}):
-        #     athPercent = athPercent + '📉'
-        # else:
-        #     athPercent = athPercent + '📈'
+        return (ath, athDateStr)
     except Exception:
         logging.warning(
-            f"Failed to get ATH for {coinData['symbol']}.", exc_info=True)
-
-    logging.debug(f'Expected response for !info')
-    logging.debug(returnString)
-
-    return returnString
+            f"Failed to get ATH for {slug}.", exc_info=True)
 
 
 def findPrice(coinData):
@@ -251,11 +260,11 @@ def getPercentString(num):
 
 def getQuoteFromCMC(coins):
     if type(coins) is not list:
-        coinIDs = [coins['cmcID']]
+        coinIDs = [str(coins['cmcID'])]
         coinSymbols = [coins['symbol']]
         coinList = [coins]
     else:
-        coinIDs = [c['cmcID'] for c in coins]
+        coinIDs = [str(c['cmcID']) for c in coins]
         coinSymbols = [c['symbol'] for c in coins]
         coinList = coins
     logging.debug(f"Getting info for {', '.join(coinSymbols)}")
@@ -263,7 +272,8 @@ def getQuoteFromCMC(coins):
     cmc = CoinMarketCapAPI(os.getenv('CMC_API_KEY'))
 
     try:
-        resp = cmc.cryptocurrency_quotes_latest(id=coinIDs)
+        print('coinIDs', ",".join(coinIDs))
+        resp = cmc.cryptocurrency_quotes_latest(id=",".join(coinIDs))
     except CoinMarketCapAPIError:
         logging.warning(
             f"Error finding info for {', '.join(coinSymbols)} with CMC.", exc_info=True)
@@ -305,8 +315,17 @@ def getQuoteFromCMC(coins):
             'percent_change_24h': percent_change_24h,
             'percent_change_7d': percent_change_7d,
             'percent_change_90d': percent_change_90d,
-            'slug': cryptoData['slug']
+            'slug': cryptoData['slug'],
+            'name': coin['name']
         }
 
     logging.debug(f'Got data object {quoteData}')
     return quoteData
+
+
+def getSpreadsheetLink(botID):
+    r = getRedisClient()
+    if r.hexists(botID, 'spreadsheet'):
+        return r.hget(botID, 'spreadsheet')
+    else:
+        return None

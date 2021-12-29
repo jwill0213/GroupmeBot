@@ -7,10 +7,10 @@ from Utils.cryptoUtils import addDefaultToRedis
 
 def askQuestion(questionObject, botID):
     r = getRedisClient()
-    if r.exists(f'openQuestion:{botID}'):
+    if r.hexists(botID, 'openQuestion'):
         return "There can only be one question active at a time. Please use !pick to answer the question."
     else:
-        r.set(f'openQuestion:{botID}', json.dumps(questionObject))
+        r.hset(botID, 'openQuestion', json.dumps(questionObject))
         questionMessage = [questionObject['text']]
         for option in questionObject['options']:
             questionMessage.append(option['text'])
@@ -21,20 +21,13 @@ def askQuestion(questionObject, botID):
 
 def answerQuestion(selectedOption, botID):
     r = getRedisClient()
-    if r.exists(f'openQuestion:{botID}'):
-        questionObject = json.loads(r.get(f'openQuestion:{botID}'))
-        if 'params' in questionObject:
-            if len(questionObject['params'].split(',')) > 1:
-                raise Exception("Too many params.")
-            else:
-                param = questionObject['params']
-                option = questionObject['options'][selectedOption - 1]
-                logging.info(
-                    f"Running function {questionObject['callback']}({option[param]})")
-                eval(f"{questionObject['callback']}({option[param]})")
-                r.delete(f'openQuestion:{botID}')
-                return f"Set the default option to {option['text']}. Try your pervious command again."
-        else:
-            raise Exception("Must pass parameter when answering a question")
+    if r.hexists(botID, 'openQuestion'):
+        questionObject = json.loads(r.hget(botID, 'openQuestion'))
+        option = questionObject['options'][selectedOption - 1]
+        logging.info(
+            f"Running function {questionObject['callback']}({option['params']})")
+        eval(f"{questionObject['callback']}(*{option['params']})")
+        r.hdel(botID, 'openQuestion')
+        return f"Set the default option to {option['text']}. Try your pervious command again."
     else:
         return "No question has been asked yet"
