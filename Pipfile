@@ -19,6 +19,7 @@ setuptools = "*"
 
 [dev-packages]
 python-dotenv = "*"
+black = "*"
 
 [requires]
 python_version = "3.10"

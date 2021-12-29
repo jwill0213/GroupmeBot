@@ -46,7 +46,7 @@ def run(data, botID, send):
                 spreadsheetUrl = getSpreadsheetLink(botID)
                 if spreadsheetUrl:
                     send(
-                        f'Crypto Data Spreadsheet is here {spreadsheetUrl}.', botID)
+                        f'Crypto Data Spreadsheet is here {spreadsheetUrl}', botID)
                 else:
                     send(
                         'There is no crypto data spreadsheet setup for this group.', botID)
