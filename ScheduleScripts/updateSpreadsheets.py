@@ -31,7 +31,7 @@ logging.Formatter.converter = customTime
 SERVICE_ACCOUNT_DICT = json.loads(os.getenv('GOOGLE_SERVICE_ACCOUNT'))
 
 # The ID and range of a sample spreadsheet.
-SAMPLE_SPREADSHEET_ID = '***REMOVED***'
+SAMPLE_SPREADSHEET_ID = os.getenv('TEMPLATE_SPREADSHEET_ID')
 
 PRICE_FORMAT = CellFormat(numberFormat=NumberFormat(
     type='CURRENCY', pattern='$#,##0.00######'))

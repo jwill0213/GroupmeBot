@@ -1,29 +1,25 @@
 # GroupMe Bot
 
-This driver is written entirely in Python, and with easy configuration in mind.
+![GitHub Pipenv locked Python version](https://img.shields.io/github/pipenv/locked/python-version/jwill0213/GroupmeBot?style=for-the-badge)
+![GitHub last commit](https://img.shields.io/github/last-commit/jwill0213/GroupmeBot?style=for-the-badge)
 
-Using this driver, you'll be able to monitor multiple group chats with ease and set custom rules for each one (or the same for all, if that's what you want). For easy maintenance, each group's rules will be kept in their own files. I have also taken care to make debugging simple and logs easy to read, but more on that later.
+This is a Groupme bot written entirely in Python. Based on https://github.com/paulpfeister/GroupMe-BotDriver repo as a jumping off point then updated a lot of things to make it work better for me.
 
-[Crypto Market Cap & Pricing Data Provided By Nomics](https://nomics.com)
+Using this bot, you'll be able to monitor multiple group chats with ease and set custom rules for each one (or the same for all, if that's what you want). For easy maintenance, each group's rules will be kept in their own files.
 
 ## Deploying the bot
 
-This driver has been built to run on Heroku. If you don't have an account, register at [signup.heroku.com](https://signup.heroku.com/).
-You can likely run this bot elsewhere, but as of yet only Heroku has been verified as working.
+This bot is setup to run on [Heroku](https://www.heroku.com/) and will work on the Free tier in most cases. If there is a large number of groups or resource intesive rules you may need to use a more powerful dyno.
 
-The steps here might look daunting if you are unfamiliar, but I tried making them as easily understood and step-by-step as possible. If there are any issues, feel free to [open a ticket](https://github.com/paulpfeister/GroupMe-BotDriver/issues).
-
-Steps for using *GitHub Desktop* on Windows will be added shortly, along with steps for using HerokuGit instead of GitHub.
 
 #### Linux command line
 1. Create a new repository on github. [See this page for help](https://help.github.com/en/articles/create-a-repo).
-   - Ensure the repo is private. More on this later.
+   - Ensure the repo is private.
 2. Open the terminal, and enter these commands where \*USERNAME\* is your github username and \*REPO\* is your new repository name.
 ```
-$ git clone --mirror https://github.com/paulpfeister/groupme-botdriver.git
-$ cd groupme-botdriver.git
-$ git remote set-url --push origin https://github.com/*USERNAME*/*REPO*.git
-$ git push --mirror
+$ git clone --bare https://github.com/jwill0213/GroupmeBot.git
+$ cd GroupmeBot.git
+$ git push --mirror https://github.com/*USERNAME*/*REPO*.git
 ```
 3. Create a new app on your [Heroku dashboard](https://dashboard.heroku.com/apps)
    1. Click **Create new app** in the dropdown menu labled **New** (top right corner).
@@ -41,8 +37,27 @@ $ git push --mirror
 5. Return to Heroku and configure your bot.
    1. Under the **Settings** tab (when within your app's dashboard), click **Reveal Config Vars**.
    2. Define key `BOT_INFO` for your group.
-      - Value should equal `GROUP_ID, BOT_ID, BOT_NAME` so if your group id is 123, your bot id is 98765, and name is John the resulting value would be `123, 98765, John`
-   - If you have multiple groups, want to toggle debugging, or want to toggle concurrency, see the Advanced section.
+      - Value should equal `GROUP_ID, BOT_ID, BOT_NAME, BOT_ALIAS` so if your group id is 123, your bot id is 98765, and name is John the resulting value would be `123, 98765, John`
+
+This will get the base bot up and running. In order to use the Rules/cryptoRules or ScheduleScripts/updateSpreadsheets, you will need a few other things setup.
+
+First you will need to setup [Heroku Redis](https://elements.heroku.com/addons/heroku-redis)
+
+1. Go to your app on the Heroku Dashboard
+2. Go to **Resources** tab and search for **Heroku Redis**
+   - You can run this on the free tier setting
+
+This will automatically add the environment variable to the **Settings** > **Config Vars**.
+
+You will also need a [CoinMarketCap Api Key](https://coinmarketcap.com/api/).
+1. Sign up for the api and copy down the api key.
+2. Under the **Settings** tab (when within your app's dashboard), click **Reveal Config Vars**.
+3. Define a new key `CMC_API_KEY` that is the api key you copied earlier.
+
+
+### OLD README BELOW. In process of updating.
+
+
 
 **Cheers!** Your bot should now be functioning. See the customization section to make it do stuff.
 
