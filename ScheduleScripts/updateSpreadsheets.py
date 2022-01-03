@@ -86,11 +86,6 @@ def main():
 
         # Get watchlist data for the bot
         priceData = getPriceDataForWatchlist(botID)
-        dataDatetime = (
-            datetime.now()
-            .astimezone(timezone("US/Central"))
-            .strftime("%Y-%m-%d %I:%M:%S %p")
-        )
 
         # Loop through all symbols in the watchlist and create a worksheet for each one.
         for symbol, quote in priceData["quotes"].items():
@@ -98,6 +93,7 @@ def main():
             logging.info("Sleeping for 15 seconds to avoid google sheets api limit")
             sleep(15)
             logging.info(f"Finished sleeping, processing {symbol} for bot {botID}")
+            dataDatetime = priceData["dataDate"]
             if symbol in [w.title for w in spreadsheet.worksheets()]:
                 sheet = spreadsheet.worksheet(symbol)
             else:
