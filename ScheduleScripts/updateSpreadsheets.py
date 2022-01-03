@@ -4,6 +4,7 @@ import os
 import logging
 from pytz import timezone, utc
 from datetime import datetime
+from time import sleep
 
 from gspread.utils import ValueInputOption
 from gspread_formatting import *
@@ -93,6 +94,10 @@ def main():
 
         # Loop through all symbols in the watchlist and create a worksheet for each one.
         for symbol, quote in priceData["quotes"].items():
+            # Before each sheet update, we want to sleep for 15 seconds to avoid tripping the google sheets api limit
+            logging.info("Sleeping for 15 seconds to avoid google sheets api limit")
+            sleep(15)
+            logging.info(f"Finished sleeping, processing {symbol} for bot {botID}")
             if symbol in [w.title for w in spreadsheet.worksheets()]:
                 sheet = spreadsheet.worksheet(symbol)
             else:
