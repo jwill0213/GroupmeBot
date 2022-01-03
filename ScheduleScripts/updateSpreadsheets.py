@@ -100,7 +100,7 @@ def main():
                 sheet = spreadsheet.duplicate_sheet(
                     source_sheet_id=template.id,
                     new_sheet_name=symbol,
-                    insert_sheet_index=99,
+                    insert_sheet_index=0,
                 )
 
             startCell = sheet.find("Datetime")
