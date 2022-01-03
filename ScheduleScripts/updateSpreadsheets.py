@@ -93,7 +93,7 @@ def main():
             logging.info("Sleeping for 15 seconds to avoid google sheets api limit")
             sleep(15)
             logging.info(f"Finished sleeping, processing {symbol} for bot {botID}")
-            dataDatetime = priceData["dataDate"]
+            dataDatetime = priceData["dataDate"].strftime("%Y-%m-%d %I:%M:%S %p")
             if symbol in [w.title for w in spreadsheet.worksheets()]:
                 sheet = spreadsheet.worksheet(symbol)
             else:

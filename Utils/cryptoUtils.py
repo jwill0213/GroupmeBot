@@ -172,7 +172,7 @@ def findCryptoInfoCMC(coinData):
 
     returnString = (
         f"{coinData['symbol']} | {coinData['name']}\n"
-        f"As of {quoteData['dataDate']}\n"
+        f"As of {quoteData['dataDate'].strftime('%I:%M:%S %p')}\n"
         f"Current Price: ${quote['currentPrice']}\n"
         f"Market Cap: ${quote['marketCap']}\n"
         f"Circulating Supply: {quote['circulatingSupply']}\n"
@@ -219,7 +219,7 @@ def findPrice(coinData):
 
     logging.debug(data)
 
-    return {"date": data["dataDate"], "quotes": data["quotes"]}
+    return {"date": data["dataDate"].strftime("%I:%M:%S %p"), "quotes": data["quotes"]}
 
 
 def findPriceString(coinData):
@@ -310,7 +310,6 @@ def getQuoteFromCMC(coins):
                 datetime.strptime(quote["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ")
                 .replace(tzinfo=pytz.utc)
                 .astimezone(pytz.timezone("US/Central"))
-                .strftime("%I:%M:%S %p")
             )
             quoteData = {"dataDate": dataDate, "quotes": {}}
 
