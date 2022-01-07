@@ -130,7 +130,7 @@ def main():
                 )
                 lastPriceCell = f"{priceCell[0]}{int(priceCell[1:]) - 1}"
 
-                priceChangeFormula = f"={lastPriceCell}-{priceCell}"
+                priceChangeFormula = f"={priceCell}-{lastPriceCell}"
                 percentChangeFormula = f"={priceChangeCell}/{lastPriceCell}"
 
                 sheet.update_acell(priceChangeCell, priceChangeFormula)
