@@ -68,8 +68,11 @@ def getWatchlistPriceString(botID):
 
         stringList = [f"Prices for watchlist as of {priceData['dataDate']}"]
         for symbol, quoteData in priceData["quotes"].items():
-            coinString = "{:<5} | {:<12} | {:<15}".format(
-                symbol, "$" + quoteData["currentPrice"], quoteData["name"].title()
+            coinString = "{:<5} | {:<12} ({:<5}) | {:<15}".format(
+                symbol,
+                "$" + quoteData["currentPrice"],
+                quoteData["percent_change_24h"],
+                quoteData["name"].title(),
             )
             stringList.append(coinString)
         return "\n".join(stringList)
