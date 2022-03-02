@@ -70,7 +70,7 @@ def getWatchlistPriceString(botID):
         for symbol, quoteData in priceData["quotes"].items():
             change24 = quoteData["percent_change_24h"]
             change24 = change24[: change24.index("%") + 1]
-            coinString = "{:<5} | {:<12} ({:<5}) | {:<15}".format(
+            coinString = "{:<5} | {:<10} ({:<5}) | {:<15}".format(
                 symbol,
                 "$" + quoteData["currentPrice"],
                 change24,
@@ -245,7 +245,7 @@ def getPrecisionString(num, precisionOverride=-1, precisionCap=10):
     # Find the decimals returned
     if len(num.split(".")) > 1 and not precisionOverride > -1:
         pricePrecision = len(num.split(".")[1])
-        if len(num.split(".")[0]) > 3:
+        if len(num.split(".")[0]) >= 3:
             pricePrecision = 2
     # Since we are doing money we want to ensure we have at least 2 decimal points of precision
     if pricePrecision < 2 and not precisionOverride > -1:
