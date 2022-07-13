@@ -70,6 +70,10 @@ def getWatchlistPriceString(botID):
         for symbol, quoteData in priceData["quotes"].items():
             change24 = quoteData["percent_change_24h"]
             change24 = change24[: change24.index("%") + 1]
+            if "+" in change24:
+                change24 += "🟢"
+            elif "-" in change24:
+                change24 += "🔴"
             coinString = "{:<5} | {:<10} ({:<5}) | {:<15}".format(
                 symbol,
                 "$" + quoteData["currentPrice"],
